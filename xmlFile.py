@@ -1,0 +1,95 @@
+#!/usr/bin/python
+# -*- coding:UTF-8 -*-
+import os,xml.etree.ElementTree as ET
+from util import *
+
+
+
+def addFile(sourceFilePath,destFilePath):
+    #获取文件属性
+    fstat = os.stat(sourceFilePath)
+
+    #向user.xml中添加文件和文件属性
+    tree = ET.parse(USERXML)
+    fileList = tree.getroot()
+    #查找是否原来已经上传了此文件
+    isExistFile=False
+    for file in fileList.iter('file'):
+        if(file.attrib['path']==destFilePath):
+            file.attrib = {"clientPath":sourceFilePath,\
+                      "path": destFilePath,\
+                      "state": "transfering", \
+                      "st_mode": str(fstat.st_mode), \
+                      "st_uid": str(fstat.st_uid), \
+                      "st_gid": str(fstat.st_gid), \
+                      "st_atime": str(fstat.st_atime), \
+                      "st_mtime": str(fstat.st_mtime), \
+                           }
+            isExistFile=True
+            break
+    #不存在则添加
+    if (not isExistFile) :
+        newFile = ET.Element("file")
+        newFile.attrib = {"clientPath":sourceFilePath,\
+                          "path": destFilePath, \
+                          "state": "transfering", \
+                          "st_mode": str(fstat.st_mode), \
+                          "st_uid": str(fstat.st_uid), \
+                          "st_gid": str(fstat.st_gid), \
+                          "st_atime": str(fstat.st_atime), \
+                          "st_mtime": str(fstat.st_mtime), \
+                          }
+        fileList.append(newFile)
+    tree.write(USERXML)
+
+#讲对应文件的state修改为completed
+def modifyFile(destFilePath):
+    tree = ET.parse(USERXML)
+    fileList = tree.getroot()
+    for file in fileList.iter('file'):
+        if(file.attrib['path']==destFilePath):
+            file.attrib['state']='completed'
+            break
+    tree.write(USERXML)
+
+#根据xml记录的属性恢复对应文件的属性
+def restoreFileAttrFromXml(sourceFilePath,destFilePath):
+    tree = ET.parse(USERXML)
+    fileList = tree.getroot()
+    for file in fileList.iter('file'):
+        if (file.attrib['path'] == destFilePath):
+            file.attrib['state'] = 'completed'
+            os.chmod(sourceFilePath,long(file.attrib['st_mode']))
+            os.chown(sourceFilePath,long(file.attrib['st_uid']),long(file.attrib['st_gid']))
+            os.utime(sourceFilePath, (float(file.attrib['st_atime']), float(file.attrib['st_mtime'])))
+            break
+
+#根据属性值获取对应文件列表(服务器上)
+def getFileListByAttr(attrName,attrVal):
+    fl=[]
+    tree = ET.parse(USERXML)
+    fileList = tree.getroot()
+    for file in fileList.iter('file'):
+        if (file.attrib[attrName] == attrVal):
+         fl.append(file.attrib['path'])
+    return fl
+
+#根据属性值获取对应文件列表(客户端)
+def getClientFileListByAttr(attrName,attrVal):
+    fl=[]
+    tree = ET.parse(USERXML)
+    fileList = tree.getroot()
+    for file in fileList.iter('file'):
+        if (file.attrib[attrName] == attrVal):
+         fl.append(file.attrib['clientPath'])
+    return fl
+
+#根据属性值删除对应文件(服务器)
+def deleteFileByAttr(attrName,attrVal):
+    tree = ET.parse(USERXML)
+    fileList = tree.getroot()
+    for file in fileList.iter('file'):
+        if (file.attrib[attrName] == attrVal):
+         fileList.remove(file)
+    tree.write(USERXML)
+
