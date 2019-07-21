@@ -3,7 +3,7 @@
 
 import threading
 import time
-from Queue import PriorityQueue
+from Queue import Queue
 
 '''
 class transferMg:
@@ -28,7 +28,7 @@ print pq.get()[1].name
 print pq.queue 
 '''
 
-
+'''
 class Job(threading.Thread):
 
     def __init__(self, *args, **kwargs):
@@ -51,9 +51,16 @@ def test():
         self._Job__flag.wait()
         print time.time()
         time.sleep(1)
+'''
 
-a = Job()
-a.start()
-a.resume()
-print 'ok'
+lq=Queue(5)
+lq.put(1)
+lq.put(2)
+lq.put(3)
+lq.put(4)
+lq.put(5)
+print list(lq.queue)
+lq.get()
+lq.put(6)
+print list(lq.queue)
 
