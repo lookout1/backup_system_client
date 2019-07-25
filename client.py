@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding:UTF-8 -*-
 
-import file,os,transfer
+import file,os,transfer,LSTM,FSMonitor
 from util import *
 
 
@@ -35,17 +35,19 @@ def init():
     #获取状态为transfering的文件并删除
     file.deleteFile('state','transfering')
 
-
     #获取状态为completed的文件并列出
     file.listFile('state', 'completed')
 
-    #启动传输调度线程
-    st = transfer.schedTread()
-    st.start()
+    #启动备份调度线程
+    fst = file.schedTread()
+    fst.start()
+
+    #启动优化模型线程
+    lstmt = LSTM.optModelTread()
+    lstmt.start()
 
     #启动自动备份
     t = threading.Thread(target=file.autoBackup)
     t.start()
-
 
 main()

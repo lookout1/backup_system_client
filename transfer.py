@@ -3,6 +3,8 @@
 import os,socket,time,Queue
 from util import *
 
+
+''' 多线程传输调度
 class schedTread(threading.Thread):
 
     def __init__(self, *args, **kwargs):
@@ -36,7 +38,7 @@ def schedule():
                     temp1[1].resume();
                 else :
                     break;
-
+'''
 
 def backup(sourceFilePath,destFilePath):
     s = socket.socket()
@@ -82,7 +84,6 @@ def delete(destFilePath):
 
     s.close()
 
-
 def sendFile(s,sourceFilePath,destFilePath):
 
     #发送服务器文件路径
@@ -99,7 +100,7 @@ def sendFile(s,sourceFilePath,destFilePath):
     bt = threading.currentThread()  #bt为备份线程
     #读取文件内容并发送
     while (length > 0):
-        if hasattr(bt,'wait'):
+        if hasattr(bt,'wait'):  #如果线程不参与调度，线程中没有wait成员函数
             bt.wait()           #检查线程是否能继续发送
         buf = fi.read(BUFFSIZE)
         s.sendall(buf)

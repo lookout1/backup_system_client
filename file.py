@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding:UTF-8 -*-
-import transfer,os,xmlFile,threading,time
+import transfer,os,xmlFile,threading,time,LSTM,FSMonitor
 from util import *
 
 
@@ -30,11 +30,17 @@ def backUpFile(sourceFilePath):
     else :
         (filepath,filename)=os.path.split(sourceFilePath)
         #t=threading.Thread(target=backup,args=(sourceFilePath,filename))
+        #将文件放入等待队列
+        if waitQueue.count(sourceFilePath)==0:
+            waitQueue.append(sourceFilePath)
+        '''多线程备份
         t=backupThread(args=(sourceFilePath,filename));
         # 将备份线程加入等待队列
         fstat = getFileAttr(sourceFilePath)
         transfer.waitQueue.put((fstat.st_size, t));  # 备份线程的优先级即为文件大小
         t.start()
+        '''
+
 
 #根据一定时间间隔,自动备份已经上传的文件
 def autoBackup():
@@ -42,7 +48,13 @@ def autoBackup():
         # 获取状态为completed的文件路径(客户端)
         fileList = xmlFile.getClientFileListByAttr('state', 'completed')
         for filePath in fileList:
-            backUpFile(filePath)
+            fstat = getFileAttr(filePath)
+            lastBackupTime = float(xmlFile.getAttrByFilepath(filePath, "backup_time"))  # 文件上次备份时间
+            recent_modify_time = fstat.st_mtime  # 文件最近修改时间
+            #如果文件备份之后修改过则进行备份
+            if lastBackupTime<recent_modify_time:
+                if waitQueue.count(filePath) == 0:
+                    waitQueue.append(filePath)
         time.sleep(INTERVAL)
 
 #恢复文件
@@ -76,12 +88,17 @@ def visit(arg, dirname, names):
         if os.path.isdir(sourceFilePath):
             continue
 
+        #将文件放入等待队列
+        if waitQueue.count(sourceFilePath) == 0:
+            waitQueue.append(sourceFilePath)
+        '''多线程备份
         # 创建线程进行文件备份
         t=backupThread(args=(sourceFilePath,destFilePath));
         # 将备份线程加入等待队列
         fstat = getFileAttr(sourceFilePath)
         transfer.waitQueue.put((fstat.st_size, t));  # 备份线程的优先级即为文件大小
         t.start()
+        '''
 
 
 def backup(sourceFilePath,destFilePath):
@@ -98,7 +115,7 @@ def backup(sourceFilePath,destFilePath):
 
     userXmlMutex.acquire()
     # 将user.xml中对应文件状态改为已完成
-    xmlFile.modifyFile(destFilePath)
+    xmlFile.modifyFile(sourceFilePath,"state","completed")
     # 同步user.xml至服务器
     syncXmlToServer()
     userXmlMutex.release()
@@ -121,3 +138,51 @@ class backupThread(threading.Thread):
 
     def resume(self):
         self.__flag.set()    # 设置为True, 让线程停止阻塞
+
+waitQueue=[] #等待进行备份的文件列表
+
+class schedTread(threading.Thread):
+
+    def __init__(self, *args, **kwargs):
+        super(schedTread, self).__init__(*args, **kwargs)
+
+    def run(self):
+        while True:
+            schedule()
+
+def schedule():
+    maxPrior=0         #优先级值大的优先级高
+    maxPriorFile=""
+    nowTime = time.time()
+    #选出优先级最大的文件
+    for filePath in waitQueue:
+        fstat=getFileAttr(filePath)
+        fsize=fstat.st_size #文件大小
+        lastBackupTime=xmlFile.getAttrByFilepath(filePath,"backup_time") #文件上次备份时间
+        timeSinceLastBackup=nowTime-lastBackupTime            #文件距离上次备份的时间
+        fileModifiedTimeList=FSMonitor.getRecentModifiedTime(filePath,6)  #文件最近六次修改时间
+        if fileModifiedTimeList==None:
+            predicted_next_modification_time=0
+        else:
+            if LSTM.model==None:
+                predicted_next_modification_time=0
+            else:
+                predicted_next_modification_time =LSTM.getPredict(FSMonitor.getModifiedInterval(fileModifiedTimeList)) #获取预测的修改时间
+
+        prior=(timeSinceLastBackup+predicted_next_modification_time+fsize)/fsize  #文件备份的优先级
+        if prior>maxPrior:
+            maxPrior=prior
+            maxPriorFile=filePath
+
+    if maxPriorFile=="":
+        return
+    else:
+        (dir,filename) = os.path.split(maxPriorFile)
+        backup(maxPriorFile,filename)
+        #备份完成后将文件移出队列并监视文件的修改操作
+        waitQueue.remove(maxPriorFile)
+        FSMonitor.fsm.add_watch(maxPriorFile)
+
+
+
+

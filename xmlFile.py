@@ -1,11 +1,13 @@
 #!/usr/bin/python
 # -*- coding:UTF-8 -*-
-import os,xml.etree.ElementTree as ET
+import time,os,xml.etree.ElementTree as ET
 from util import *
 
 
 
 def addFile(sourceFilePath,destFilePath):
+    now_time = time.time()
+
     #获取文件属性
     fstat = os.stat(sourceFilePath)
 
@@ -24,6 +26,7 @@ def addFile(sourceFilePath,destFilePath):
                       "st_gid": str(fstat.st_gid), \
                       "st_atime": str(fstat.st_atime), \
                       "st_mtime": str(fstat.st_mtime), \
+                      "backup_time": str(now_time)
                            }
             isExistFile=True
             break
@@ -38,17 +41,18 @@ def addFile(sourceFilePath,destFilePath):
                           "st_gid": str(fstat.st_gid), \
                           "st_atime": str(fstat.st_atime), \
                           "st_mtime": str(fstat.st_mtime), \
+                          "backup_time": str(now_time)
                           }
         fileList.append(newFile)
     tree.write(USERXML)
 
-#讲对应文件的state修改为completed
-def modifyFile(destFilePath):
+#修改对应文件的文件属性
+def modifyFile(sourceFilePath,attrName,attrVal):
     tree = ET.parse(USERXML)
     fileList = tree.getroot()
     for file in fileList.iter('file'):
-        if(file.attrib['path']==destFilePath):
-            file.attrib['state']='completed'
+        if(file.attrib['clientPath']==sourceFilePath):
+            file.attrib[attrName]=attrVal
             break
     tree.write(USERXML)
 
@@ -83,6 +87,18 @@ def getClientFileListByAttr(attrName,attrVal):
         if (file.attrib[attrName] == attrVal):
          fl.append(file.attrib['clientPath'])
     return fl
+
+#根据文件路径获取相应属性值
+def getAttrByFilepath(filepath,attrName):
+    tree = ET.parse(USERXML)
+    fileList = tree.getroot()
+    attrVal = None
+    for file in fileList.iter('file'):
+        if (file.attrib['clientPath'] == filepath):
+            attrVal=file.attrib[attrName]
+    if attrVal==None:
+        attrVal=0
+    return float(attrVal)
 
 #根据属性值删除对应文件(服务器)
 def deleteFileByAttr(attrName,attrVal):

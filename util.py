@@ -11,3 +11,4 @@ USERXML="user.xml"   #记录服务器上用户已经备份的文件和正在传�
 userXmlMutex = threading.Lock() #user.xml文件互斥访问锁
 MTSIZE = 3 #最大同时进行备份传输的文件数
 SCHED_INTERVAL=10 #传输调度的时间间隔
+OPT_MODEL_INTERVAL=500 #优化模型（预测文件修改时间）的时间间隔
