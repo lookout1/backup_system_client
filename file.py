@@ -149,9 +149,11 @@ class schedTread(threading.Thread):
     def run(self):
         while True:
             schedule()
+            if len(waitQueue)==0:
+                time.sleep(10)
 
 def schedule():
-    maxPrior=0         #优先级值大的优先级高
+    maxPrior=-1         #优先级值大的优先级高
     maxPriorFile=""
     nowTime = time.time()
     #选出优先级最大的文件
@@ -164,12 +166,12 @@ def schedule():
         if fileModifiedTimeList==None:
             predicted_next_modification_time=0
         else:
-            if LSTM.model==None:
-                predicted_next_modification_time=0
-            else:
-                predicted_next_modification_time =LSTM.getPredict(FSMonitor.getModifiedInterval(fileModifiedTimeList)) #获取预测的修改时间
-
-        prior=(timeSinceLastBackup+predicted_next_modification_time+fsize)/fsize  #文件备份的优先级
+            predicted_next_modification_time =LSTM.getPredict(FSMonitor.getModifiedInterval(fileModifiedTimeList)) #获取预测的修改时间
+        print filePath+' predicted_next_modification_time：'+str(predicted_next_modification_time)
+        if fsize==0:
+            prior=0
+        else:
+            prior=(timeSinceLastBackup+predicted_next_modification_time+fsize)/fsize  #文件备份的优先级
         if prior>maxPrior:
             maxPrior=prior
             maxPriorFile=filePath
@@ -181,7 +183,8 @@ def schedule():
         backup(maxPriorFile,filename)
         #备份完成后将文件移出队列并监视文件的修改操作
         waitQueue.remove(maxPriorFile)
-        FSMonitor.fsm.add_watch(maxPriorFile)
+        if not maxPriorFile in FSMonitor.fileModifiedTime:
+            FSMonitor.fsm.add_watch(maxPriorFile)
 
 
 

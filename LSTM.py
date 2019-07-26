@@ -21,7 +21,8 @@ class optModelTread(threading.Thread):
 
     def run(self):
         while True:
-            LSTM.model=getModel()
+            global model
+            model=getModel()
             time.sleep(OPT_MODEL_INTERVAL)
 
 
@@ -108,6 +109,7 @@ def getModel():
         '''
     if train_X is None:
         model=None
+        return model
     else:
         print train_X
         print test_X
@@ -124,17 +126,24 @@ def getModel():
         # 拟合网络模型
         history = model.fit(train_X, train_y, epochs=1000,callbacks=[earlyStopping], batch_size=100, validation_data=(test_X, test_y), verbose=2, shuffle=False)
 
+
         # 作出预测
         '''
         test=[20.,10.,10.,20.,10.]
         test=series_to_supervised(test, 4).values
-        test.reshape((test.shape[0], 1, test.shape[1]))
+        test=test.reshape((test.shape[0], 1, test.shape[1]))
         '''
-    return model
+        model.predict(test_X)
+
+        return model
 
 def getPredict(data):
+    global model
+    if model==None:
+        return 0
     data=series_to_supervised(data, 4).values
     data=data.reshape((data.shape[0], 1, data.shape[1]))
-    return LSTM.model.predict(data)[0][0]
+    #temp=model.predict(data)
+    return model.predict(data)[0][0]
 
 model=getModel()

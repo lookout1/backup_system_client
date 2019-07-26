@@ -90,12 +90,15 @@ def getClientFileListByAttr(attrName,attrVal):
 
 #根据文件路径获取相应属性值
 def getAttrByFilepath(filepath,attrName):
+    userXmlMutex.acquire()
     tree = ET.parse(USERXML)
+    userXmlMutex.release()
     fileList = tree.getroot()
     attrVal = None
     for file in fileList.iter('file'):
         if (file.attrib['clientPath'] == filepath):
             attrVal=file.attrib[attrName]
+            break
     if attrVal==None:
         attrVal=0
     return float(attrVal)
