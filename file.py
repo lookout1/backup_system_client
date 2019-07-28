@@ -10,6 +10,9 @@ def listFile(attrName,attrVal):
     for path in fileList:
         print path
 
+#获取文件列表（服务器）
+def getFileList(attrName,attrVal):
+    return xmlFile.getFileListByAttr(attrName,attrVal)
 
 #删除文件（服务器）
 def deleteFile(attrName,attrVal):
@@ -30,6 +33,7 @@ def backUpFile(sourceFilePath):
     else :
         (filepath,filename)=os.path.split(sourceFilePath)
         #t=threading.Thread(target=backup,args=(sourceFilePath,filename))
+
         #将文件放入等待队列
         if waitQueue.count(sourceFilePath)==0:
             waitQueue.append(sourceFilePath)
@@ -69,7 +73,8 @@ def restoreFile(sourceFilePath,destFilePath):
 def syncXmlToServer():
     #如果客户端存在USERXML则同步至服务器，否则将服务器的同步至客户端
     if os.path.exists(USERXML):
-        transfer.backup(USERXML,USERXML)
+        fstat = getFileAttr(USERXML)
+        transfer.backup(USERXML,USERXML,fstat)
     else:
         transfer.restore(USERXML,USERXML)
 
@@ -111,7 +116,8 @@ def backup(sourceFilePath,destFilePath):
     userXmlMutex.release()
 
     #传输文件
-    transfer.backup(sourceFilePath,destFilePath)
+    fstat=getFileAttr(sourceFilePath)
+    transfer.backup(sourceFilePath,destFilePath,fstat)
 
     userXmlMutex.acquire()
     # 将user.xml中对应文件状态改为已完成

@@ -122,7 +122,7 @@ def getModel():
         model.add(LSTM(50, input_shape=(train_X.shape[1], train_X.shape[2])))
         model.add(Dense(1))
         model.compile(loss='mae', optimizer='adam')
-        earlyStopping = callbacks.EarlyStopping(monitor='val_loss', patience=5, verbose=1, mode='auto')
+        earlyStopping = callbacks.EarlyStopping(monitor='val_loss', patience=50, verbose=1, mode='auto')
         # 拟合网络模型
         history = model.fit(train_X, train_y, epochs=1000,callbacks=[earlyStopping], batch_size=100, validation_data=(test_X, test_y), verbose=2, shuffle=False)
 

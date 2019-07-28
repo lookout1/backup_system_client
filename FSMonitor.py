@@ -10,7 +10,7 @@ import time
 fileModifiedTime = {}
 
 class EventHandler(ProcessEvent):
-    #当文件发生修改操作时进行的时间处理
+    #当文件发生修改操作时记录修改时间
     def process_IN_MODIFY(self, event):
         now_time=time.time()
         filePath=os.path.join(event.path, event.name).rstrip('/')

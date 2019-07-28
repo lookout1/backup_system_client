@@ -40,7 +40,7 @@ def schedule():
                     break;
 '''
 
-def backup(sourceFilePath,destFilePath):
+def backup(sourceFilePath,destFilePath,fstat):
     s = socket.socket()
     s.connect((HOST,PORT))
 
@@ -50,7 +50,7 @@ def backup(sourceFilePath,destFilePath):
     buf = s.recv(BUFFSIZE).strip('\0')
 
     #发送文件
-    sendFile(s,sourceFilePath,destFilePath)
+    sendFile(s,sourceFilePath,destFilePath,fstat)
 
     s.close()
 
@@ -84,13 +84,12 @@ def delete(destFilePath):
 
     s.close()
 
-def sendFile(s,sourceFilePath,destFilePath):
+def sendFile(s,sourceFilePath,destFilePath,fstat):
 
     #发送服务器文件路径
     s.sendall(destFilePath+'\0')
     buf = s.recv(BUFFSIZE).strip('\0')
 
-    fstat = os.stat(sourceFilePath)
     #发送文件长度
     s.sendall(str(fstat.st_size) + '\0')
     buf = s.recv(BUFFSIZE).strip('\0')
